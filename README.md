@@ -7,9 +7,10 @@ A reusable, **SCM-neutral** starter repository showing how a team can use VS Cod
 - `AGENTS.md` as the canonical repository-wide agent contract
 - SCM-neutral custom agents stored in `.agents/`
 - VS Code workspace configuration that discovers those agents
+- Guided **Planner -> Implementer -> Reviewer** handoffs
+- Human approval before each handoff is submitted
 - Explicit architecture and testing guidance
 - A repeatable local quality gate: `npm run verify`
-- Planning -> implementation -> review workflow
 - A small working service with exercises agents can implement
 
 ## Repository layout
@@ -53,20 +54,23 @@ Then open:
 
 No package install is required because the starter uses only Node.js built-ins.
 
-## Try the agentic workflow
+## Try the guided agentic workflow
 
-Open the repository in VS Code with GitHub Copilot/Copilot Chat enabled.
+Open the repository root in VS Code with GitHub Copilot/Copilot Chat enabled.
 
 1. Choose the **Planner** custom agent.
 2. Prompt: `Plan Exercise 2 from TASKS.md. Do not edit code.`
-3. Review the plan.
-4. Choose the **Implementer** custom agent.
-5. Prompt: `Implement Exercise 2 following the approved plan. Run npm run verify.`
-6. Choose the **Reviewer** custom agent.
-7. Prompt: `Review the uncommitted changes against AGENTS.md.`
-8. Review the result yourself, then commit/push with your normal SCM workflow.
+3. Review the proposed plan.
+4. Select **Start Implementation**. VS Code switches to the **Implementer** with the approved-plan context and a pre-filled implementation prompt.
+5. Review the implementation and `npm run verify` results.
+6. Select **Review Changes**. VS Code switches to the **Reviewer** with the conversation context and a pre-filled review prompt.
+7. Review the findings yourself.
+8. If material findings exist, select **Address Findings** to return to the **Implementer** for a focused remediation pass.
+9. When the review is clean, commit/push through your normal SCM workflow.
 
-See `PROMPTS.md` for more examples.
+The handoffs use `send: false`. Selecting a handoff prepares the next agent and prompt, but the developer remains in control of submitting the next step.
+
+See `PROMPTS.md` for additional examples.
 
 ## Why there is no SCM CI file
 
@@ -81,3 +85,5 @@ Add the thin CI wrapper appropriate for your organization while keeping the engi
 ## VS Code note
 
 The workspace uses `chat.agentFilesLocations` so custom agents can live in `.agents/` instead of a vendor-named directory. `AGENTS.md` is enabled with `chat.useAgentsMdFile`.
+
+VS Code custom-agent handoffs preserve the conversation context while transitioning to the target agent. In this starter they are deliberately human-gated rather than automatically submitted.
