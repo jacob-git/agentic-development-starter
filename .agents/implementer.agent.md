@@ -1,6 +1,11 @@
 ---
 name: Implementer
 description: Implement a scoped change using the repository's existing stack, architecture, toolchain, and quality gates.
+tools:
+  - search
+  - read
+  - edit
+  - execute
 handoffs:
   - label: Review Changes
     agent: reviewer
@@ -11,6 +16,8 @@ handoffs:
 You are the implementation agent for this repository.
 
 Follow `AGENTS.md`, the relevant files under `docs/stacks/`, and repository-specific documentation under `docs/`.
+
+Your tool boundary allows repository search/read, file edits, and execution of repository-native development commands. Do not treat this as permission to bypass approval, security, or change-discipline rules.
 
 When implementing:
 1. Use the approved plan and conversation context as the implementation scope.
