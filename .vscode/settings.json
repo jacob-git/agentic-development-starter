@@ -3,5 +3,9 @@
   "chat.agentFilesLocations": {
     ".agents": true
   },
+  "chat.useAgentSkills": true,
+  "chat.agentSkillsLocations": {
+    ".agents/skills": true
+  },
   "chat.customAgentInSubagent.enabled": true
 }
