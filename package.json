@@ -1,0 +1,16 @@
+{
+  "name": "agentic-development-starter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SCM-neutral starter repository for agentic development with VS Code and GitHub Copilot.",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "lint": "node scripts/lint.js",
+    "verify": "npm run lint && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

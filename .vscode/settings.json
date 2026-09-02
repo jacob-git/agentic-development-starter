@@ -1,0 +1,7 @@
+{
+  "chat.useAgentsMdFile": true,
+  "chat.agentFilesLocations": {
+    ".agents": true
+  },
+  "chat.customAgentInSubagent.enabled": true
+}
