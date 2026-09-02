@@ -4,9 +4,10 @@ A reusable, **SCM-neutral and stack-aware** starter showing how a team can use V
 
 ## What this demonstrates
 
-- `AGENTS.md` as the canonical repository-wide agent contract
+- `AGENTS.md` as the canonical repository-wide engineering contract
 - SCM-neutral custom agents stored in `.agents/`
 - Planner -> Implementer -> Reviewer handoffs with human approval between stages
+- Agent Skills under `.agents/skills/` for repeatable procedures loaded when relevant
 - automatic stack/toolchain discovery from repository evidence
 - technology-specific guidance for React + TypeScript, Spring Boot, and Python
 - repository-native verification instead of hardcoded build commands
@@ -23,13 +24,25 @@ A reusable, **SCM-neutral and stack-aware** starter showing how a team can use V
 ├── .agents/
 │   ├── planner.agent.md
 │   ├── implementer.agent.md
-│   └── reviewer.agent.md
+│   ├── reviewer.agent.md
+│   └── skills/
+│       ├── verify-repository/
+│       │   └── SKILL.md
+│       ├── investigate-bug/
+│       │   └── SKILL.md
+│       ├── implement-feature/
+│       │   └── SKILL.md
+│       ├── review-change/
+│       │   └── SKILL.md
+│       └── update-dependency/
+│           └── SKILL.md
 ├── .vscode/
 │   ├── settings.json
 │   └── extensions.json
 ├── docs/
 │   ├── architecture.md
 │   ├── testing.md
+│   ├── skills.md
 │   ├── agentic-workflow.md
 │   └── stacks/
 │       ├── react-typescript.md
@@ -40,6 +53,32 @@ A reusable, **SCM-neutral and stack-aware** starter showing how a team can use V
 ├── scripts/              # runnable Node sample only
 └── package.json          # runnable Node sample only
 ```
+
+## Customization model
+
+Each artifact has one clear responsibility:
+
+| Artifact | Purpose |
+| --- | --- |
+| `AGENTS.md` | Engineering principles, guardrails, and universal repository rules |
+| `.agents/*.agent.md` | Who is doing the work: Planner, Implementer, Reviewer |
+| `.agents/skills/*/SKILL.md` | How to perform a repeatable task such as debugging or verification |
+| `docs/stacks/*` | Technology-specific guidance for React/TypeScript, Spring Boot, Python, etc. |
+| application docs/config | The actual repository's architecture, build, test, and operational contracts |
+
+This separation keeps always-on context small while allowing Copilot to load specialized procedures only when relevant.
+
+## Included skills
+
+| Skill | When it helps |
+| --- | --- |
+| `verify-repository` | After code changes or whenever completion requires quality-gate evidence |
+| `investigate-bug` | Failing tests, regressions, unexpected behavior, root-cause investigation |
+| `implement-feature` | Adding or changing scoped application behavior |
+| `review-change` | Reviewing changes before human approval/merge |
+| `update-dependency` | Targeted dependency upgrades or vulnerability remediation |
+
+Copilot can select skills from their descriptions based on the current request; developers usually do not need to mention a skill by name. See `docs/skills.md` for details.
 
 ## How Copilot should behave
 
@@ -56,15 +95,16 @@ Examples:
 
 The agents do **not** assume `npm run verify`, Maven, Gradle, pytest, or any other command just because it is familiar.
 
-## Agent workflow
+## Agent + skill workflow
 
 ```text
 Developer request
       |
       v
 Planner
-  detects stack
-  reads repo + stack guidance
+  detects stack/toolchain
+  reads repository guidance
+  may use task-relevant skills
   produces plan + verification approach
       |
       v
@@ -72,15 +112,17 @@ Planner
       |
       v
 Implementer
+  uses implement-feature / investigate-bug / update-dependency when relevant
   changes code
   adds/updates tests
-  runs repository-native quality gates
+  uses verify-repository for repository-native quality gates
       |
       v
 [ Review Changes ]
       |
       v
 Reviewer
+  uses review-change when relevant
   correctness + security
   architecture + stack conventions
   tests + verification evidence
@@ -122,9 +164,12 @@ Open the repository root in VS Code with GitHub Copilot/Copilot Chat enabled.
 2. Ask: `Plan Exercise 2 from TASKS.md. Do not edit code.`
 3. Review the plan and click **Start Implementation**.
 4. Review the prepared prompt and submit it to **Implementer**.
-5. When implementation is complete, click **Review Changes**.
-6. Review the prepared prompt and submit it to **Reviewer**.
-7. If material findings exist, click **Address Findings**; otherwise perform the final human review.
+5. Copilot can load `implement-feature` and later `verify-repository` when they are relevant.
+6. When implementation is complete, click **Review Changes**.
+7. Review the prepared prompt and submit it to **Reviewer**; `review-change` can load for the review procedure.
+8. If material findings exist, click **Address Findings**; otherwise perform the final human review.
+
+You can inspect/manage skills in VS Code through the Chat customization/skills UI (including `/skills` in supported versions).
 
 See `PROMPTS.md` for more examples.
 
@@ -136,14 +181,15 @@ Copy/adapt the agent layer rather than copying the Node demo architecture blindl
 - `.agents/`
 - `.vscode/settings.json` (or equivalent user/workspace configuration)
 - `docs/agentic-workflow.md`
+- `docs/skills.md`
 - the relevant files under `docs/stacks/`
 
 Then replace/extend `docs/architecture.md` and `docs/testing.md` with the real application's architecture, test strategy, constraints, and quality gates.
 
 ## Why there is no SCM-specific CI file
 
-A vendor-specific pipeline would make the starter less portable. Your CI system should call the target repository's established verification command(s), while `AGENTS.md` and the agent workflow remain portable across SCM platforms.
+A vendor-specific pipeline would make the starter less portable. Your CI system should call the target repository's established verification command(s), while `AGENTS.md`, Agent Skills, and the agent workflow remain portable across SCM platforms.
 
 ## VS Code note
 
-The workspace uses `chat.agentFilesLocations` so custom agents can live in `.agents/` instead of a vendor-named directory. `AGENTS.md` is enabled for Copilot through the workspace configuration.
+The workspace configuration explicitly enables `AGENTS.md`, custom-agent discovery from `.agents/`, and Agent Skills discovery from `.agents/skills/` so the starter does not depend on a developer's local customization paths.
