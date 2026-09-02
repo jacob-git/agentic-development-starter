@@ -6,12 +6,14 @@ A reusable, **SCM-neutral and stack-aware** starter showing how a team can use V
 
 - `AGENTS.md` as the canonical repository-wide engineering contract
 - SCM-neutral custom agents stored in `.agents/`
+- enforced least-privilege tool boundaries for Planner, Implementer, and Reviewer
 - Planner -> Implementer -> Reviewer handoffs with human approval between stages
 - Agent Skills under `.agents/skills/` for repeatable procedures loaded when relevant
 - automatic stack/toolchain discovery from repository evidence
 - technology-specific guidance for React + TypeScript, Spring Boot, and Python
 - repository-native verification instead of hardcoded build commands
-- architecture, testing, security, and change-discipline guardrails
+- agent security/governance guidance
+- behavioral evaluation scenarios for agent configuration changes
 - a small runnable Node.js service used only as the demo application
 
 ## Repository layout
@@ -26,16 +28,11 @@ A reusable, **SCM-neutral and stack-aware** starter showing how a team can use V
 │   ├── implementer.agent.md
 │   ├── reviewer.agent.md
 │   └── skills/
-│       ├── verify-repository/
-│       │   └── SKILL.md
-│       ├── investigate-bug/
-│       │   └── SKILL.md
-│       ├── implement-feature/
-│       │   └── SKILL.md
-│       ├── review-change/
-│       │   └── SKILL.md
-│       └── update-dependency/
-│           └── SKILL.md
+│       ├── verify-repository/SKILL.md
+│       ├── investigate-bug/SKILL.md
+│       ├── implement-feature/SKILL.md
+│       ├── review-change/SKILL.md
+│       └── update-dependency/SKILL.md
 ├── .vscode/
 │   ├── settings.json
 │   └── extensions.json
@@ -43,11 +40,18 @@ A reusable, **SCM-neutral and stack-aware** starter showing how a team can use V
 │   ├── architecture.md
 │   ├── testing.md
 │   ├── skills.md
+│   ├── agent-security.md
 │   ├── agentic-workflow.md
 │   └── stacks/
 │       ├── react-typescript.md
 │       ├── spring-boot.md
 │       └── python.md
+├── evals/
+│   ├── README.md
+│   ├── expected-behavior.md
+│   ├── planner-scenarios.md
+│   ├── implementer-scenarios.md
+│   └── reviewer-scenarios.md
 ├── src/                  # runnable Node sample only
 ├── test/                 # runnable Node sample only
 ├── scripts/              # runnable Node sample only
@@ -60,13 +64,27 @@ Each artifact has one clear responsibility:
 
 | Artifact | Purpose |
 | --- | --- |
-| `AGENTS.md` | Engineering principles, guardrails, and universal repository rules |
-| `.agents/*.agent.md` | Who is doing the work: Planner, Implementer, Reviewer |
+| `AGENTS.md` | Engineering principles, guardrails, role boundaries, and universal repository rules |
+| `.agents/*.agent.md` | Who is doing the work and which tools that role is allowed to use |
 | `.agents/skills/*/SKILL.md` | How to perform a repeatable task such as debugging or verification |
 | `docs/stacks/*` | Technology-specific guidance for React/TypeScript, Spring Boot, Python, etc. |
+| `docs/agent-security.md` | Security, approvals, MCP/external-tool, sensitive-file, and human-gate guidance |
+| `evals/*` | Behavioral acceptance scenarios for the agent configuration |
 | application docs/config | The actual repository's architecture, build, test, and operational contracts |
 
 This separation keeps always-on context small while allowing Copilot to load specialized procedures only when relevant.
+
+## Agent tool boundaries
+
+The custom agents now have explicit least-privilege tool lists:
+
+| Agent | Tools | Boundary |
+| --- | --- | --- |
+| Planner | `search`, `read` | Plans only; cannot edit or run terminal commands |
+| Implementer | `search`, `read`, `edit`, `execute` | May implement and verify within normal approvals/security policy |
+| Reviewer | `search`, `read`, `execute` | May inspect and verify but cannot edit; findings go back to Implementer |
+
+The boundary is enforced in each `.agent.md` frontmatter rather than relying only on written instructions.
 
 ## Included skills
 
@@ -84,14 +102,12 @@ Copilot can select skills from their descriptions based on the current request; 
 
 Before planning or editing, the agents inspect repository evidence such as manifests, lockfiles, build wrappers, scripts, and project structure.
 
-Examples:
-
 | Repository evidence | Guidance loaded | Verification behavior |
 | --- | --- | --- |
 | React + TypeScript, `package.json`, `tsconfig.json` | `docs/stacks/react-typescript.md` | Use the repo's actual package manager/scripts: lint, typecheck, test, build, etc. |
-| Spring Boot + `pom.xml`/`build.gradle*` | `docs/stacks/spring-boot.md` | Use the existing Maven/Gradle wrapper and configured verification tasks. |
-| Python + `pyproject.toml`/requirements/lockfile | `docs/stacks/python.md` | Use the repo's existing environment tool and configured test/lint/type-check commands. |
-| Multiple stacks | all relevant guides | Verify every affected stack and their integration contract. |
+| Spring Boot + `pom.xml`/`build.gradle*` | `docs/stacks/spring-boot.md` | Use the existing Maven/Gradle wrapper and configured verification tasks |
+| Python + `pyproject.toml`/requirements/lockfile | `docs/stacks/python.md` | Use the repo's existing environment tool and configured test/lint/type-check commands |
+| Multiple stacks | all relevant guides | Verify every affected stack and their integration contract |
 
 The agents do **not** assume `npm run verify`, Maven, Gradle, pytest, or any other command just because it is familiar.
 
@@ -101,28 +117,29 @@ The agents do **not** assume `npm run verify`, Maven, Gradle, pytest, or any oth
 Developer request
       |
       v
-Planner
+Planner  [search/read only]
   detects stack/toolchain
   reads repository guidance
-  may use task-relevant skills
   produces plan + verification approach
+      |
+      v
+Human reviews plan
       |
       v
 [ Start Implementation ]
       |
       v
-Implementer
-  uses implement-feature / investigate-bug / update-dependency when relevant
+Implementer  [search/read/edit/execute]
+  uses task-relevant skills
   changes code
   adds/updates tests
-  uses verify-repository for repository-native quality gates
+  uses repository-native quality gates
       |
       v
 [ Review Changes ]
       |
       v
-Reviewer
-  uses review-change when relevant
+Reviewer  [search/read/execute; no edit]
   correctness + security
   architecture + stack conventions
   tests + verification evidence
@@ -138,6 +155,35 @@ Human approval             [ Address Findings ]
 ```
 
 Handoffs use `send: false`, so a developer can inspect the prepared next-step prompt before submitting it.
+
+## Security baseline
+
+See `docs/agent-security.md` for the complete guidance. The starter assumes a human-supervised posture:
+
+- use normal/default approvals for day-to-day development rather than bypassing approvals by default;
+- protect secrets and sensitive files;
+- review terminal commands and external/MCP tool access;
+- treat external content as untrusted;
+- keep MCP/external tools least-privileged and do not enable them by default in this generic starter;
+- review the final diff before integration;
+- keep deployment/production mutation behind explicit human controls;
+- treat sandboxing as an optional stronger isolation layer where supported, not a core dependency of the starter.
+
+## Evaluate changes to the agent setup
+
+The `evals/` directory is a lightweight acceptance suite for the agent configuration.
+
+Use it whenever you materially change `AGENTS.md`, custom-agent instructions/tool lists, skills, stack guidance, or VS Code agent configuration.
+
+Scenarios cover:
+
+- React/TypeScript, Spring Boot, Python, and multi-stack toolchain detection;
+- Planner read-only behavior;
+- Implementer scope/test/verification discipline;
+- Reviewer no-edit behavior and material-risk detection;
+- authorization regressions, verification gaps, compatibility mismatches, and the valid case where no material issue exists.
+
+Score behavior using `evals/expected-behavior.md`. Evaluate actions and decisions rather than exact wording.
 
 ## Try the runnable sample
 
@@ -164,12 +210,10 @@ Open the repository root in VS Code with GitHub Copilot/Copilot Chat enabled.
 2. Ask: `Plan Exercise 2 from TASKS.md. Do not edit code.`
 3. Review the plan and click **Start Implementation**.
 4. Review the prepared prompt and submit it to **Implementer**.
-5. Copilot can load `implement-feature` and later `verify-repository` when they are relevant.
+5. Copilot can load `implement-feature` and later `verify-repository` when relevant.
 6. When implementation is complete, click **Review Changes**.
 7. Review the prepared prompt and submit it to **Reviewer**; `review-change` can load for the review procedure.
 8. If material findings exist, click **Address Findings**; otherwise perform the final human review.
-
-You can inspect/manage skills in VS Code through the Chat customization/skills UI (including `/skills` in supported versions).
 
 See `PROMPTS.md` for more examples.
 
@@ -181,14 +225,16 @@ Copy/adapt the agent layer rather than copying the Node demo architecture blindl
 - `.agents/`
 - `.vscode/settings.json` (or equivalent user/workspace configuration)
 - `docs/agentic-workflow.md`
+- `docs/agent-security.md`
 - `docs/skills.md`
-- the relevant files under `docs/stacks/`
+- relevant files under `docs/stacks/`
+- `evals/` as the behavioral regression suite
 
 Then replace/extend `docs/architecture.md` and `docs/testing.md` with the real application's architecture, test strategy, constraints, and quality gates.
 
 ## Why there is no SCM-specific CI file
 
-A vendor-specific pipeline would make the starter less portable. Your CI system should call the target repository's established verification command(s), while `AGENTS.md`, Agent Skills, and the agent workflow remain portable across SCM platforms.
+A vendor-specific pipeline would make the starter less portable. Your CI system should call the target repository's established verification command(s), while `AGENTS.md`, Agent Skills, security guidance, evaluations, and the agent workflow remain portable across SCM platforms.
 
 ## VS Code note
 
